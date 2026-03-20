@@ -1,102 +1,100 @@
-let questions = [
-{ q:"Wann wurde Vivaldi geboren?", a:["1678","1685","1700","1650"], correct:"1678" },
-{ q:"Wo wurde er geboren?", a:["Venedig","Wien","Rom","Paris"], correct:"Venedig" },
-{ q:"Wann starb er?", a:["1741","1800","1678","1900"], correct:"1741" },
-{ q:"Welches Instrument spielte er?", a:["Geige","Klavier","Flöte","Gitarre"], correct:"Geige" },
-{ q:"Wie wurde er genannt?", a:["Roter Priester","Meister","Komponist","Dirigent"], correct:"Roter Priester" },
-{ q:"Bekanntestes Werk?", a:["Vier Jahreszeiten","Zauberflöte","Requiem","Symphonie"], correct:"Vier Jahreszeiten" }
-];
+let current=[], index=0, score=0, wrong=[], timer, time=25;
 
-let current=0,timer,time=20,joker=false,score=0;
-let highscore = localStorage.getItem("highscore") || 0;
-document.getElementById("highscore").innerText=highscore;
+function shuffle(a){ return a.sort(()=>Math.random()-0.5); }
 
-function shuffle(array){
- for(let i=array.length-1;i>0;i--){
-  let j=Math.floor(Math.random()*(i+1));
-  [array[i],array[j]]=[array[j],array[i]];
- }
- return array;
+function startQuiz(type){
+    document.getElementById("menu").classList.add("hidden");
+    document.getElementById("quiz").classList.remove("hidden");
+
+    current = type==="wrong" ? wrong : shuffle([...questions[type]]);
+    index=0; score=0;
+
+    load();
 }
 
 function load(){
- if(current>=questions.length){
-  if(score>highscore) localStorage.setItem("highscore",score);
-  document.getElementById("question").innerText="Fertig "+score;
-  return;
- }
+    if(index>=current.length){
+        alert("Fertig "+score+"/"+current.length);
+        location.reload();
+        return;
+    }
 
- let q=questions[current];
- document.getElementById("question").innerText=q.q;
+    let q=current[index];
+    document.getElementById("question").innerText=q.frage;
 
- let answers = shuffle([...q.a]); // echte Fisher-Yates Mischung
+    let answersDiv=document.getElementById("answers");
+    answersDiv.innerHTML="";
 
- let box=document.getElementById("answers");
- box.innerHTML="";
+    shuffle(q.antworten).forEach(a=>{
+        let btn=document.createElement("button");
+        btn.innerText=a;
+        btn.onclick=()=>check(btn,a,q);
+        answersDiv.appendChild(btn);
+    });
 
- answers.forEach(ans=>{
-  let b=document.createElement("button");
-  b.innerText=ans;
-  b.onclick=()=>check(ans,b);
-  box.appendChild(b);
- });
+    document.getElementById("counter").innerText=
+        "Frage "+(index+1)+" von "+current.length;
 
- start();
+    document.getElementById("progress").style.width=
+        ((index+1)/current.length*100)+"%";
+
+    startTimer();
 }
 
-function check(ans,btn){
- clearInterval(timer);
-
- let correct = questions[current].correct;
- let buttons=document.querySelectorAll("#answers button");
-
- buttons.forEach(b=>{
-  if(b.innerText===correct){
-    b.classList.add("correct");
-  }
- });
-
- if(ans===correct){
-  btn.classList.add("correct");
-  document.getElementById("correctSound").play();
-  score++;
- } else {
-  btn.classList.add("wrong");
-  document.getElementById("wrongSound").play();
-  questions.push(questions[current]);
- }
-
- document.getElementById("score").innerText=score;
-
- setTimeout(()=>{
-  current++; joker=false; load();
- },1000);
-}
-
-function start(){
- time=20;
- document.getElementById("timer").innerText=time;
- timer=setInterval(()=>{
-  time--;
-  document.getElementById("timer").innerText=time;
-  if(time<=0){
+function check(btn,selected,q){
     clearInterval(timer);
-    questions.push(questions[current]);
-    current++; load();
-  }
- },1000);
+
+    let correct=q.antworten[q.richtig];
+
+    document.querySelectorAll("#answers button").forEach(b=>{
+        if(b.innerText===correct) b.classList.add("correct");
+    });
+
+    if(selected===correct){
+        btn.classList.add("correct");
+        score++;
+    } else {
+        btn.classList.add("wrong");
+        wrong.push(q);
+    }
 }
 
-document.getElementById("joker").onclick=()=>{
- if(joker) return;
+function nextQuestion(){
+    index++;
+    load();
+}
 
- let btns=[...document.querySelectorAll("#answers button")];
- let correct=questions[current].correct;
+function startTimer(){
+    time=25;
+    document.getElementById("timer").innerText="Zeit: "+time;
 
- let wrong=btns.filter(b=>b.innerText!==correct);
- wrong[Math.floor(Math.random()*wrong.length)].style.display="none";
+    timer=setInterval(()=>{
+        time--;
+        document.getElementById("timer").innerText="Zeit: "+time;
 
- joker=true;
+        if(time<=0){
+            clearInterval(timer);
+            wrong.push(current[index]);
+        }
+    },1000);
+}
+
+function useJoker(){
+    let correct=current[index].antworten[current[index].richtig];
+
+    document.querySelectorAll("#answers button").forEach(b=>{
+        if(b.innerText!==correct && Math.random()<0.5){
+            b.style.display="none";
+        }
+    });
+}
+
+const questions = {
+xabcd:[
+{frage:"Was bedeutet D im ABCDE?",antworten:["Disability","Diagnosis","Depth","Deficit"],richtig:0}
+],
+labor:[],
+med:[],
+ekg:[],
+miranda:[]
 };
-
-load();
