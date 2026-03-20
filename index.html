@@ -3,86 +3,98 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Joker Quiz</title>
+<title>Notfallpflege Quiz</title>
 
 <style>
 body {
     margin:0;
-    font-family:-apple-system, BlinkMacSystemFont;
-    background:#000;
-    color:white;
+    font-family:-apple-system;
+    background:#f5f5f7;
+    color:#111;
 }
 
-.container {
-    max-width:500px;
-    margin:auto;
+/* START SCREEN */
+
+.start-screen {
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    text-align:center;
     padding:20px;
 }
 
-.logo img {
-    width:120px;
-    display:block;
-    margin:auto;
+.start-screen img {
+    width:160px;
+    margin-bottom:20px;
 }
 
-.title {
-    text-align:center;
-    font-size:22px;
-    margin:20px;
+.start-title {
+    font-size:28px;
+    font-weight:700;
+}
+
+.start-sub {
+    margin-top:10px;
+    color:gray;
+}
+
+.start-btn {
+    margin-top:40px;
+    padding:18px 60px;
+    font-size:20px;
+    border:none;
+    border-radius:30px;
+    background:orange;
+    color:white;
+    box-shadow:0 10px 20px rgba(0,0,0,0.2);
+}
+
+/* MENU */
+
+.menu {
+    display:none;
+    padding:20px;
 }
 
 .card {
-    background:#1c1c1e;
+    background:white;
     padding:20px;
     border-radius:20px;
     margin:10px 0;
-    cursor:pointer;
-    transition:0.2s;
+    box-shadow:0 5px 15px rgba(0,0,0,0.1);
 }
 
-.card:hover {
-    transform:scale(1.02);
-}
+/* QUIZ */
 
-.card span {
-    display:block;
-    font-size:14px;
-    opacity:0.6;
-}
-
-.hidden { display:none; }
-
-#question {
-    font-size:22px;
-    margin-bottom:20px;
+.quiz {
+    display:none;
+    padding:20px;
 }
 
 #answers button {
     width:100%;
     padding:15px;
-    margin:6px 0;
+    margin:8px 0;
     border:none;
     border-radius:12px;
-    background:#2c2c2e;
-    color:white;
-    font-size:16px;
+    background:#eee;
 }
 
 .correct { background:#34c759 !important; }
 .wrong { background:#ff3b30 !important; }
 
-.progress-bar {
+.progress {
     height:6px;
-    background:#333;
+    background:#ddd;
     border-radius:10px;
-    margin-bottom:10px;
 }
 
-#progress {
+.progress-bar {
     height:100%;
-    background:#0a84ff;
     width:0%;
-    border-radius:10px;
+    background:#007aff;
 }
 
 .joker, .next {
@@ -91,244 +103,170 @@ body {
     margin-top:10px;
     border:none;
     border-radius:12px;
-    font-size:16px;
 }
 
-.joker { background:gold; color:black; }
-.next { background:#0a84ff; color:white; }
+.joker { background:gold; }
+.next { background:#007aff; color:white; }
 
-#timer {
-    text-align:center;
-    margin-top:10px;
-    opacity:0.7;
-}
 </style>
 </head>
 
 <body>
 
-<div class="container">
+<!-- START -->
 
-<div class="logo">
+<div class="start-screen" id="start">
 <img src="jokerhut.jpg">
+<div class="start-title">Notfallpflege Quiz</div>
+<div class="start-sub">Trainiere Entscheidungen unter Zeitdruck</div>
+<button class="start-btn" onclick="goMenu()">START</button>
 </div>
 
-<div class="title">Joker Quiz</div>
+<!-- MENU -->
 
-<!-- MENÜ -->
-<div id="menu">
+<div class="menu" id="menu">
 
-<div class="card" onclick="startQuiz('xabcd')">
-xABCDE
-<span>Initiale Beurteilung</span>
-</div>
-
-<div class="card" onclick="startQuiz('labor')">
-Laborwerte
-<span>Normwerte & Röhrchen</span>
-</div>
-
-<div class="card" onclick="startQuiz('med')">
-Medikamente
-<span>Indikation, Dosis, Nebenwirkung</span>
-</div>
-
-<div class="card" onclick="startQuiz('ekg')">
-EKG Kurs
-<span>Erkennen & Befunden</span>
-</div>
-
-<div class="card" onclick="startQuiz('ludwig')">
-Dr. Ludwig
-<span>Polytrauma & Internistisch</span>
-</div>
-
-<div class="card" onclick="startQuiz('miranda')">
-Miranda
-<span>Immobilisation & Positionierung</span>
-</div>
-
-<div class="card" onclick="startQuiz('wrong')">
-Meine Schwächen
-<span>Falsch beantwortet</span>
-</div>
+<div class="card" onclick="startQuiz('xabcd')">1. xABCDE</div>
+<div class="card" onclick="startQuiz('labor')">2. Laborwerte</div>
+<div class="card" onclick="startQuiz('med')">3. Medikamente</div>
+<div class="card" onclick="startQuiz('ekg')">4. EKG</div>
+<div class="card" onclick="startQuiz('ludwig')">5. Dr. Ludwig</div>
+<div class="card" onclick="startQuiz('miranda')">6. Miranda</div>
+<div class="card" onclick="startQuiz('wrong')">7. Meine Schwächen</div>
 
 </div>
 
 <!-- QUIZ -->
-<div id="quiz" class="hidden">
 
-<div class="progress-bar">
-<div id="progress"></div>
+<div class="quiz" id="quiz">
+
+<div class="progress">
+<div class="progress-bar" id="progress"></div>
 </div>
 
-<div id="counter"></div>
-
 <div id="question"></div>
-
 <div id="answers"></div>
 
-<button class="joker" onclick="useJoker()">Joker einsetzen</button>
-<button class="next" onclick="nextQuestion()">Nächste Frage</button>
+<button class="joker" onclick="joker()">Joker</button>
+<button class="next" onclick="next()">Weiter</button>
 
 <div id="timer"></div>
 
 </div>
 
-</div>
-
 <script>
 
-let current = [];
-let index = 0;
-let score = 0;
-let wrong = [];
-let timer;
-let time = 25;
+let q=[],i=0,score=0,wrong=[],time=25,timer;
 
-function shuffle(a){
-    return a.sort(()=>Math.random()-0.5);
+let correctSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3");
+let wrongSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3");
+
+function goMenu(){
+    document.getElementById("start").style.display="none";
+    document.getElementById("menu").style.display="block";
 }
 
 function startQuiz(type){
 
-    document.getElementById("menu").classList.add("hidden");
-    document.getElementById("quiz").classList.remove("hidden");
+    document.getElementById("menu").style.display="none";
+    document.getElementById("quiz").style.display="block";
 
-    if(type === "wrong"){
-        current = wrong;
-    } else {
-        current = shuffle([...questions[type]]);
-    }
+    q = type==="wrong"?wrong:[...questions[type]].sort(()=>Math.random()-0.5);
 
-    index = 0;
-    score = 0;
+    i=0; score=0;
 
     load();
 }
 
 function load(){
 
-    if(index >= current.length){
-        alert("Fertig: "+score+" von "+current.length);
+    if(i>=q.length){
+        alert("Fertig "+score+"/"+q.length);
         location.reload();
         return;
     }
 
-    let q = current[index];
+    let current=q[i];
 
-    document.getElementById("question").innerText = q.frage;
+    document.getElementById("question").innerText=current.frage;
 
-    let answersDiv = document.getElementById("answers");
-    answersDiv.innerHTML = "";
+    let answers=[...current.antworten].sort(()=>Math.random()-0.5);
 
-    let shuffled = shuffle([...q.antworten]);
+    let div=document.getElementById("answers");
+    div.innerHTML="";
 
-    shuffled.forEach(a=>{
-        let btn = document.createElement("button");
-        btn.innerText = a;
-        btn.onclick = ()=>check(btn,a,q);
-        answersDiv.appendChild(btn);
+    answers.forEach(a=>{
+        let b=document.createElement("button");
+        b.innerText=a;
+        b.onclick=()=>check(b,a,current);
+        div.appendChild(b);
     });
 
-    document.getElementById("counter").innerText =
-    "Frage "+(index+1)+" von "+current.length;
-
-    document.getElementById("progress").style.width =
-    ((index+1)/current.length*100)+"%";
+    document.getElementById("progress").style.width=((i+1)/q.length*100)+"%";
 
     startTimer();
 }
 
-function check(btn,selected,q){
+function check(btn,a,current){
 
     clearInterval(timer);
 
-    let correct = q.antworten[q.richtig];
+    let correct=current.antworten[current.richtig];
 
     document.querySelectorAll("#answers button").forEach(b=>{
-        if(b.innerText === correct) b.classList.add("correct");
+        if(b.innerText===correct) b.classList.add("correct");
     });
 
-    if(selected === correct){
+    if(a===correct){
         btn.classList.add("correct");
         score++;
+        correctSound.play();
     } else {
         btn.classList.add("wrong");
-        wrong.push(q);
+        wrong.push(current);
+        wrongSound.play();
     }
 }
 
-function nextQuestion(){
-    index++;
+function next(){
+    i++;
     load();
 }
 
 function startTimer(){
-    time = 25;
+    time=25;
+    document.getElementById("timer").innerText="Zeit: "+time;
 
-    document.getElementById("timer").innerText = "Zeit: "+time;
-
-    timer = setInterval(()=>{
+    timer=setInterval(()=>{
         time--;
-        document.getElementById("timer").innerText = "Zeit: "+time;
+        document.getElementById("timer").innerText="Zeit: "+time;
 
-        if(time <= 0){
+        if(time<=0){
             clearInterval(timer);
-            wrong.push(current[index]);
+            wrong.push(q[i]);
         }
     },1000);
 }
 
-function useJoker(){
-
-    let correct = current[index].antworten[current[index].richtig];
+function joker(){
+    let correct=q[i].antworten[q[i].richtig];
 
     document.querySelectorAll("#answers button").forEach(b=>{
-        if(b.innerText !== correct && Math.random() < 0.5){
-            b.style.display = "none";
+        if(b.innerText!==correct && Math.random()<0.5){
+            b.style.display="none";
         }
     });
 }
 
-/* ===========================
-   FRAGENBEREICHE
-=========================== */
-
-const questions = {
-
-/* xABCDE */
-xabcd: [
-{frage:"Was bedeutet D im ABCDE?",antworten:["Disability","Diagnosis","Depth","Deficit"],richtig:0},
-{frage:"Welches Schema zur Bewusstseinsbeurteilung?",antworten:["AVPU","ABCDE","SOFA","NEWS"],richtig:0}
+const questions={
+xabcd:[
+{frage:"Was bedeutet D im ABCDE?",antworten:["Disability","Diagnosis","Depth","Deficit"],richtig:0}
 ],
-
-/* LABOR */
-labor: [
-{frage:"Welches Röhrchen für Blutbild?",antworten:["EDTA","Serum","Citrat","Heparin"],richtig:0}
-],
-
-/* MEDIKAMENTE */
-med: [
-{frage:"ASS Indikation?",antworten:["ACS","Asthma","Hypotonie","Sepsis"],richtig:0},
-{frage:"ACC Antidot für?",antworten:["Paracetamol","ASS","Insulin","Heparin"],richtig:0}
-],
-
-/* EKG */
-ekg: [
-{frage:"Unregelmäßiger Rhythmus ohne P-Wellen?",antworten:["Vorhofflimmern","Sinusrhythmus","AV-Block","STEMI"],richtig:0}
-],
-
-/* LUDWIG */
-ludwig: [
-{frage:"Was hat im Schockraum Priorität?",antworten:["ABCDE","Labor","Anamnese","CT"],richtig:0}
-],
-
-/* MIRANDA */
-miranda: [
-{frage:"Tourniquet wann?",antworten:["starke Blutung","leichte Blutung","Schmerz","Fieber"],richtig:0}
-]
-
+labor:[],
+med:[],
+ekg:[],
+ludwig:[],
+miranda:[]
 };
 
 </script>
