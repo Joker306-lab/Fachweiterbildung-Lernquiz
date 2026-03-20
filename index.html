@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Joker Quiz</title>
+<style>
+body{font-family:Arial,sans-serif;background:#111;color:#fff;margin:0;padding:0}
+.app{max-width:980px;margin:0 auto;padding:18px 14px 28px}
+.hidden{display:none}.header{text-align:center;margin-top:6px}
+.logo{width:120px;max-width:38vw;height:auto;display:block;margin:10px auto;object-fit:contain}
+.card{background:#1a1a1a;border-radius:16px;padding:16px;margin-top:18px}
+.grid{display:grid;gap:12px}
+@media (min-width:760px){.grid{grid-template-columns:1fr 1fr}}
+.big-btn,.answer-btn,.nav-btn,.joker-btn{width:100%;border:none;border-radius:12px;padding:16px;font-size:18px;cursor:pointer}
+.big-btn{background:#fff;color:#111;text-align:left}
+.big-btn.disabled{background:#2b2b2b;color:#999;cursor:default}
+.meta{margin:14px 0;font-size:17px;color:#ddd;text-align:center}
+#frage{font-size:26px;font-weight:bold;margin:18px 0;text-align:center;line-height:1.35}
+.answer-btn{background:#fff;color:#111;margin:10px 0}
+.answer-btn.correct{background:#1f9d55;color:#fff}
+.answer-btn.wrong{background:#c53030;color:#fff}
+.answer-btn.disabled{opacity:.95;cursor:default}
+.answer-btn.removed{visibility:hidden;pointer-events:none;height:0;margin:0;padding:0;border:0}
+#feedback{margin-top:14px;font-size:18px;text-align:center;font-weight:bold;min-height:24px}
+#timer{margin-top:14px;font-size:18px;text-align:center;font-weight:bold}
+.nav-btn{background:#2563eb;color:#fff;margin-top:14px}
+.nav-btn.secondary{background:#444}
+.joker-btn{background:#d4af37;color:#111;font-weight:bold;margin-top:10px}
+.joker-btn.used{background:#555;color:#aaa;cursor:default}
+.small{color:#bbb;font-size:15px;margin-top:12px;line-height:1.4;text-align:center}
+#result{font-size:21px;line-height:1.6;text-align:center}
+.badge{display:inline-block;margin-top:8px;padding:8px 14px;border-radius:999px;background:#262626;color:#ddd;font-size:14px}
+.result-title{font-size:30px;margin:8px 0 0}
+.ekg-frame{width:100%;max-height:420px;overflow:hidden;border-radius:12px;margin:0 0 14px 0;background:#fff;display:none}
+#ekgImage{width:100%;display:block;object-fit:cover;object-position:center top}
+</style>
+</head>
+<body>
+<div class="app">
+<section id="startScreen">
+<div class="header">
+<img class="logo" alt="Jokermütze" src="./jokerhut.jpg">
+<div class="badge">Joker Quiz</div>
+</div>
+<div class="card">
+<div class="grid">
+<button class="big-btn" onclick="startModule('xabcde')">xABCDE<br><span style="font-size:14px;color:#666">Initiale Beurteilung, AVPU, Airway, Breathing, Circulation</span></button>
+<button class="big-btn" onclick="startModule('labor')">Laborwerte<br><span style="font-size:14px;color:#666">Normalwerte, Röhrchen, Funktion, pathologisch hoch oder niedrig</span></button>
+<button class="big-btn" onclick="startModule('medikamente')">Medikamente<br><span style="font-size:14px;color:#666">ASS, ACC, Adenosin, Adrenalin, Atropin, Amiodaron, Diazepam</span></button>
+<button class="big-btn" onclick="startModule('ekg')">EKG Kurs<br><span style="font-size:14px;color:#666">Bild sehen, einordnen, befunden</span></button>
+<button class="big-btn" onclick="startModule('drludwig')">Dr. Ludwig<br><span style="font-size:14px;color:#666">Internistischer Patient und Polytrauma aus Sicht der Anästhesie</span></button>
+<button class="big-btn disabled" type="button">Krankheitsbilder<br><span style="font-size:14px;color:#777">folgt</span></button>
+</div>
+</div>
+</section>
+
+<section id="quizScreen" class="hidden">
+<div class="header">
+<img class="logo" style="width:80px" alt="Jokermütze" src="./jokerhut.jpg">
+<div class="badge" id="moduleBadge">Modul</div>
+</div>
+<div class="card">
+<div class="meta" id="progress"></div>
+<div class="ekg-frame" id="ekgFrame"><img id="ekgImage" alt="EKG Beispiel"></div>
+<div id="frage"></div>
+<div id="antworten"></div>
+<button id="jokerBtn" class="joker-btn" onclick="useJoker()">Joker einsetzen</button>
+<div id="feedback"></div>
+<button id="nextBtn" class="nav-btn hidden" onclick="nextQuestion()">Nächste Frage</button>
+<div id="timer"></div>
+<div class="small">25 Sekunden pro Frage. Fragen und Antworten werden bei jedem Start neu gemischt. Falsche oder nicht beantwortete Fragen kommen später erneut.</div>
+<button class="nav-btn secondary" onclick="goHome()">Zur Startseite</button>
+</div>
+</section>
+
+<section id="resultScreen" class="hidden">
+<div class="header">
+<img class="logo" alt="Jokermütze" src="./jokerhut.jpg">
+<div class="badge">Ergebnis</div>
+<div class="result-title">Stark</div>
+</div>
+<div class="card">
+<div id="result"></div>
+<button class="nav-btn" onclick="restartCurrentModule()">Nochmal spielen</button>
+<button class="nav-btn secondary" onclick="goHome()">Zur Startseite</button>
+</div>
+</section>
+</div>
+
+<script>
+const originalXabcdeQuestions = [
+{frage:["Was hat im ABCDE-Schema oberste Priorität?"],antworten:["Lebensbedrohliche Probleme sofort behandeln","Anamnese erheben","Diagnostik abschließen","Dokumentation"],richtig:0},
+{frage:["Welches Grundprinzip liegt dem ABCDE-Schema zugrunde?"],antworten:["Zuerst behandeln, was unbehandelt schnell zum Tod führt","Zuerst alle Vitalwerte exakt messen","Zuerst den Patienten komplett entkleiden","Zuerst eine vollständige Anamnese erheben"],richtig:0},
+{frage:["Was bedeutet A im ABCDE-Schema?"],antworten:["Airway","Assessment","Alert","Airflow"],richtig:0},
+{frage:["Was ist das Ziel von A?"],antworten:["Freie Atemwege sicherstellen","Sauerstoffsättigung messen","Blutdruck erfassen","Temperatur messen"],richtig:0},
+{frage:["Welches Atemgeräusch spricht für Weichteilverlegung?"],antworten:["Schnarchen","Gurgeln","Stridor","Kein Geräusch"],richtig:0},
+{frage:["Welches Atemgeräusch spricht für Flüssigkeit im Mund-Rachen-Raum?"],antworten:["Gurgeln","Schnarchen","Stille","Pfeifen"],richtig:0},
+{frage:["Welches Geräusch ist typisch bei Schwellung der oberen Atemwege?"],antworten:["Stridor","Schnarchen","Gurgeln","Rasseln"],richtig:0},
+{frage:["Was bedeutet fehlendes Atemgeräusch im A-Problem?"],antworten:["Komplette Verlegung oder Atemstillstand","Normale Atmung","Leichte Atemnot","Hyperventilation"],richtig:0},
+{frage:["Wie wird der Atemweg bei bewusstlosen Patienten ohne HWS-Verdacht freigemacht?"],antworten:["Kopf überstrecken und Kinn anheben","Nur stabile Seitenlage","Nur Absaugen","Nur Sauerstoff"],richtig:0},
+{frage:["Welche Atemwegstechnik passt bei Traumapatienten?"],antworten:["Modifizierter Esmarch-Handgriff","Maximale Reklination","Nur Absaugen","Nur Nasopharyngealtubus"],richtig:0},
+{frage:["Welche Größe eines Nasopharyngealtubus passt meist für Erwachsene?"],antworten:["6 bis 7 mm ID","2 bis 3 mm ID","4 bis 5 mm ID","9 bis 10 mm ID"],richtig:0},
+{frage:["Woran misst man die Länge eines Nasopharyngealtubus ab?"],antworten:["Nasenspitze bis Ohrläppchen","Mundwinkel bis Kinn","Stirn bis Kinn","Nase bis Sternum"],richtig:0},
+{frage:["Was bedeutet B im ABCDE-Schema?"],antworten:["Breathing","Blood","Brain","Balance"],richtig:0},
+{frage:["Was wird bei B primär beurteilt?"],antworten:["Atmung","Puls","Bewusstsein","Temperatur"],richtig:0},
+{frage:["Was ist eine typische Maßnahme bei B?"],antworten:["Sauerstoffgabe","Bluttransfusion","EKG schreiben","Anamnese erheben"],richtig:0},
+{frage:["Welche inspiratorische O2-Konzentration ist für die Sauerstoffbrille angegeben?"],antworten:["24 bis 44 Prozent","35 bis 60 Prozent","85 bis 90 Prozent","100 Prozent"],richtig:0},
+{frage:["Welche inspiratorische O2-Konzentration ist für die einfache Sauerstoffmaske angegeben?"],antworten:["35 bis 60 Prozent","24 bis 44 Prozent","85 bis 90 Prozent","100 Prozent"],richtig:0},
+{frage:["Welche inspiratorische O2-Konzentration ist für die Reservoir-Maske angegeben?"],antworten:["85 bis 90 Prozent","24 bis 44 Prozent","35 bis 60 Prozent","100 Prozent"],richtig:0},
+{frage:["Welche inspiratorische O2-Konzentration ist mit Demand-Ventil möglich?"],antworten:["100 Prozent","85 bis 90 Prozent","35 bis 60 Prozent","24 bis 44 Prozent"],richtig:0},
+{frage:["Was ist ein typisches Zeichen für Ateminsuffizienz?"],antworten:["Dyspnoe","Bradykardie","Hypertonie","Normale Haut"],richtig:0},
+{frage:["Was gehört nicht primär zur B-Beurteilung?"],antworten:["Troponin","Atemfrequenz","Thoraxbewegung","Atemgeräusche"],richtig:0},
+{frage:["Was bedeutet C im ABCDE-Schema?"],antworten:["Circulation","Control","Cardio","Core"],richtig:0},
+{frage:["Was wird bei C beurteilt?"],antworten:["Kreislauf","Atmung","Bewusstsein","Temperatur"],richtig:0},
+{frage:["Was ist ein Schockzeichen?"],antworten:["Kalte blasse Haut","Warme rosige Haut","Rote Haut","Trockene Haut"],richtig:0},
+{frage:["Welche Hautbeschreibung gilt als normal?"],antworten:["Rosig, warm und trocken","Blass, kühl und feucht","Zyanotisch und kalt","Marmoriert und kalt"],richtig:0},
+{frage:["Was zeigt eine verlängerte Rekapillarisierungszeit an?"],antworten:["Schlechte Perfusion","Gute Perfusion","Normale Haut","Fieber"],richtig:0},
+{frage:["Welcher Puls wird zuerst getastet?"],antworten:["Radialispuls","Carotispuls","Femoralpuls","Fußpuls"],richtig:0},
+{frage:["Welcher Puls wird als Nächstes getastet, wenn radial keiner tastbar ist?"],antworten:["Carotispuls","Brachialispuls","Temporalis","Poplitea"],richtig:0},
+{frage:["Wofür spricht ein gut tastbarer Radialispuls ungefähr?"],antworten:["Etwa 90 mmHg systolisch","Etwa 70 mmHg systolisch","Etwa 50 mmHg systolisch","Mindestens 140 mmHg systolisch"],richtig:0},
+{frage:["Wofür spricht nur tastbarer Carotispuls ungefähr?"],antworten:["Etwa 70 mmHg systolisch","Etwa 90 mmHg systolisch","Etwa 120 mmHg systolisch","Normotonie"],richtig:0},
+{frage:["Was bedeutet D im ABCDE-Schema?"],antworten:["Disability","Diagnosis","Depth","Deficit"],richtig:0},
+{frage:["Was wird bei D überprüft?"],antworten:["Neurologischer Status","Blutdruck","Temperatur","EKG"],richtig:0},
+{frage:["Welches kurze Schema wird im D-Teil zur Bewusstseinsbeurteilung verwendet?"],antworten:["AVPU","ABCDE","NEWS","SOFA"],richtig:0},
+{frage:["Was bedeutet A im AVPU-Schema?"],antworten:["Alert","Airway","Apnoe","Assessment"],richtig:0},
+{frage:["Was bedeutet V im AVPU-Schema?"],antworten:["Reaktion auf Ansprache","Reaktion auf Schmerz","Keine Reaktion","Schlaf"],richtig:0},
+{frage:["Was bedeutet P im AVPU-Schema?"],antworten:["Reaktion auf Schmerzreiz","Reaktion auf Ansprache","Wach und orientiert","Keine Reaktion"],richtig:0},
+{frage:["Was bedeutet U im AVPU-Schema?"],antworten:["Keine Reaktion","Reaktion auf Schmerz","Reaktion auf Ansprache","Wach"],richtig:0},
+{frage:["Was ist bei U besonders wichtig?"],antworten:["Atemweg freimachen","EKG schreiben","Patienten aufsetzen","Pupillen zuerst kontrollieren"],richtig:0},
+{frage:["Was bedeutet E im ABCDE-Schema?"],antworten:["Exposure","Evaluation","Examination","Emergency"],richtig:0},
+{frage:["Was gehört zu E?"],antworten:["Patient vollständig untersuchen","Nur Blutdruck messen","Nur Temperatur messen","Nur Anamnese"],richtig:0},
+{frage:["Was ist bei E zusätzlich wichtig?"],antworten:["Wärmeerhalt","Nur Entkleiden","Nur Sonografie","Nur Lagerung"],richtig:0},
+{frage:["Was bedeutet x im xABCDE?"],antworten:["Massive Blutung stoppen","Atemweg sichern","EKG schreiben","Anamnese"],richtig:0},
+{frage:["Wann wird x vorgezogen?"],antworten:["Bei massiver Blutung","Immer","Nie","Nur bei internistischen Patienten"],richtig:0},
+{frage:["Welche Maßnahme ist bei äußerer massiver Blutung am effektivsten?"],antworten:["Direkter manueller Druck","EKG","Sauerstoff","Anamnese"],richtig:0},
+{frage:["Was ist ein typischer Fehler im ABCDE-Ablauf?"],antworten:["Diagnostik vor Stabilisierung","Sauerstoffgabe","Monitoring","Reevaluation"],richtig:0},
+{frage:["Wann wird zum nächsten Schritt gewechselt?"],antworten:["Wenn aktuelles Problem behandelt ist","Sofort","Nie","Nur nach Labor"],richtig:0},
+{frage:["Was ist das Ziel des gesamten ABCDE-Schemas?"],antworten:["Überleben sichern","Nur Diagnose stellen","Dokumentieren","Entlassung vorbereiten"],richtig:0}
+];
+
+const originalLaborQuestions = [
+{frage:["Welches Röhrchen wird für das kleine Blutbild verwendet?"],antworten:["EDTA","Citrat","Heparin","Serum"],richtig:0},
+{frage:["Welches Röhrchen wird für Gerinnung verwendet?"],antworten:["Citrat","EDTA","Heparin","Serum"],richtig:0},
+{frage:["Welches Röhrchen wird für klinische Chemie verwendet?"],antworten:["Heparin","EDTA","Citrat","BGA"],richtig:0},
+{frage:["Welches Material wird für Blutgase verwendet?"],antworten:["BGA-Spritze","EDTA","Serum","Citrat"],richtig:0},
+{frage:["Leukozyten normal?"],antworten:["4 bis 10","100 bis 200","0 bis 1","50 bis 100"],richtig:0},
+{frage:["Was bedeutet erhöhte Leukozyten am ehesten?"],antworten:["Infektion oder Entzündung","Anämie","Hypoglykämie","Nierenversagen"],richtig:0},
+{frage:["Was bedeutet niedrige Leukozyten am ehesten?"],antworten:["Leukopenie oder Immunsuppression","Hyperthyreose","Hyperglykämie","Dehydratation"],richtig:0},
+{frage:["Thrombozyten normal?"],antworten:["150 bis 400","10 bis 50","500 bis 800","50 bis 100"],richtig:0},
+{frage:["Was bedeutet niedrige Thrombozyten?"],antworten:["Blutungsgefahr","Thromboserisiko","Hypertonie","Infektion"],richtig:0},
+{frage:["Was bedeutet hohe Thrombozyten?"],antworten:["Thromboserisiko","Blutungsgefahr","Anämie","Hypoglykämie"],richtig:0},
+{frage:["Hb Mann normal?"],antworten:["14 bis 18","10 bis 12","8 bis 10","20 bis 25"],richtig:0},
+{frage:["Hb Frau normal?"],antworten:["12 bis 16","14 bis 18","8 bis 10","20 bis 25"],richtig:0},
+{frage:["Was bedeutet niedriger Hb?"],antworten:["Anämie","Infektion","Thrombose","Hypertonie"],richtig:0},
+{frage:["Was bedeutet hoher Hb?"],antworten:["Polyglobulie","Anämie","Infektion","Nierenversagen"],richtig:0},
+{frage:["Kalium normal?"],antworten:["3,6 bis 5,5","1 bis 2","10 bis 15","6 bis 10"],richtig:0},
+{frage:["Hyperkaliämie kann führen zu?"],antworten:["Arrhythmien","Fieber","Husten","Hypertonie"],richtig:0},
+{frage:["Hypokaliämie führt häufig zu?"],antworten:["Muskelschwäche","Hypertonie","Fieber","Rash"],richtig:0},
+{frage:["Natrium normal?"],antworten:["135 bis 145","3 bis 5","100 bis 200","50 bis 80"],richtig:0},
+{frage:["Hyponatriämie kann führen zu?"],antworten:["Verwirrtheit","Hypertonie","Fieber","Husten"],richtig:0},
+{frage:["Hypernatriämie spricht häufig für?"],antworten:["Dehydratation","Anämie","Infektion","Hypotonie"],richtig:0},
+{frage:["Kreatinin normal?"],antworten:["0,6 bis 1,2","5 bis 10","20 bis 30","100 bis 200"],richtig:0},
+{frage:["Erhöhtes Kreatinin spricht am ehesten für?"],antworten:["Niereninsuffizienz","Infektion","Anämie","Thrombose"],richtig:0},
+{frage:["CRP normal?"],antworten:["unter 5","50","100","200"],richtig:0},
+{frage:["Erhöhtes CRP spricht für?"],antworten:["Entzündung","Anämie","Hypoglykämie","Hypertonie"],richtig:0},
+{frage:["Glukose nüchtern normal?"],antworten:["70 bis 100","200 bis 300","10 bis 20","150 bis 200"],richtig:0},
+{frage:["Hyperglykämie bedeutet?"],antworten:["Zu hoher Blutzucker","Zu niedriger Blutzucker","Infektion","Anämie"],richtig:0},
+{frage:["Hypoglykämie bedeutet?"],antworten:["Zu niedriger Blutzucker","Zu hoher Blutzucker","Infektion","Anämie"],richtig:0},
+{frage:["Quick normal?"],antworten:["70 bis 120 Prozent","10 bis 20 Prozent","150 bis 200 Prozent","1 bis 2 Prozent"],richtig:0},
+{frage:["INR normal?"],antworten:["0,9 bis 1,1","2 bis 3","5 bis 6","10"],richtig:0},
+{frage:["PTT normal?"],antworten:["20 bis 40 Sekunden","1 bis 5 Sekunden","100 Sekunden","200 Sekunden"],richtig:0},
+{frage:["Verlängerte PTT bedeutet?"],antworten:["Gerinnungsstörung","Infektion","Hypertonie","Fieber"],richtig:0},
+{frage:["D-Dimere erhöht bei?"],antworten:["Thrombose oder Embolie","Anämie","Hypoglykämie","Infektion"],richtig:0},
+{frage:["Laktat erhöht bedeutet?"],antworten:["Gewebehypoxie","Hypertonie","Anämie","Fieber"],richtig:0},
+{frage:["Troponin erhöht bedeutet?"],antworten:["Myokardschaden","Infektion","Anämie","Hypoglykämie"],richtig:0},
+{frage:["CK erhöht bedeutet?"],antworten:["Muskelschaden","Nierenversagen","Infektion","Hypoglykämie"],richtig:0},
+{frage:["Bilirubin erhöht bedeutet?"],antworten:["Leber- oder Gallenproblem","Infektion","Anämie","Hypertonie"],richtig:0},
+{frage:["AST und ALT erhöht sprechen für?"],antworten:["Leberzellschaden","Infektion","Hypoglykämie","Thrombose"],richtig:0},
+{frage:["Lipase erhöht spricht für?"],antworten:["Pankreatitis","Infektion","Anämie","Hypertonie"],richtig:0},
+{frage:["TSH erhöht bedeutet meist?"],antworten:["Hypothyreose","Hyperthyreose","Infektion","Anämie"],richtig:0},
+{frage:["TSH niedrig bedeutet meist?"],antworten:["Hyperthyreose","Hypothyreose","Infektion","Anämie"],richtig:0},
+{frage:["Harnstoff erhöht spricht für?"],antworten:["Nierenproblem","Infektion","Anämie","Hypertonie"],richtig:0},
+{frage:["Calcium normal?"],antworten:["2,2 bis 2,6","5 bis 10","10 bis 20","1 bis 2"],richtig:0},
+{frage:["Hypokalzämie führt zu?"],antworten:["Tetanie","Hypertonie","Fieber","Husten"],richtig:0},
+{frage:["Hyperkalzämie kann führen zu?"],antworten:["Bewusstseinsstörung","Anämie","Infektion","Husten"],richtig:0},
+{frage:["Magnesium normal?"],antworten:["0,75 bis 1,05","2 bis 4","5 bis 10","0,1 bis 0,2"],richtig:0},
+{frage:["Hypomagnesiämie kann begünstigen?"],antworten:["Rhythmusstörungen","Hyperthermie","Hypertonie","Leukozytose"],richtig:0},
+{frage:["Phosphat normal?"],antworten:["0,77 bis 1,55","2 bis 5","5 bis 10","0,1 bis 0,3"],richtig:0},
+{frage:["Albumin ist wichtig für?"],antworten:["Kolloidosmotischen Druck","Herzfrequenz","Atemfrequenz","Glukosebildung"],richtig:0}
+];
+
+const originalMedikamentQuestions = [
+{frage:["ASS wird in der Notaufnahme typischerweise eingesetzt bei?"],antworten:["Akutem Koronarsyndrom","Paracetamolintoxikation","AVNRT","Anaphylaxie"],richtig:0},
+{frage:["Welche ASS-Dosis ist beim ACS im Material genannt?"],antworten:["250 mg i.v.","100 mg i.v.","6 mg i.v.","0,5 mg i.m."],richtig:0},
+{frage:["Welche Kontraindikation passt zu ASS?"],antworten:["Hämorrhagische Diathese","Paracetamolintoxikation","AVNRT","Bronchialsekretstörung"],richtig:0},
+{frage:["Welche Nebenwirkung passt zu ASS?"],antworten:["Verlängerte Blutungszeit","AV-Block III°","Trockener Husten","Bradykardie"],richtig:0},
+{frage:["ASS hemmt primär?"],antworten:["Cyclooxygenase","ACE","Beta-Rezeptoren","Calciumkanäle"],richtig:0},
+{frage:["ASS beeinflusst vor allem?"],antworten:["Thrombozytenaggregation","Bronchodilatation","Insulinsekretion","Kaliumausscheidung"],richtig:0},
+{frage:["ACC wird als Antidot eingesetzt bei?"],antworten:["Paracetamolintoxikation","ASS-Überdosierung","Adenosin-Nebenwirkung","Anaphylaxie"],richtig:0},
+{frage:["Wie startet das ACC-Schema?"],antworten:["150 mg/kg in 200 ml Glukose über 60 Minuten","50 mg/kg in 500 ml NaCl über 4 Stunden","100 mg/kg in 1000 ml NaCl über 16 Stunden","250 mg als Bolus"],richtig:0},
+{frage:["Welche Nebenwirkung ist für ACC genannt?"],antworten:["Urtikaria","AV-Block","Hyperglykämie","Mydriasis"],richtig:0},
+{frage:["ACC wirkt zusätzlich als?"],antworten:["Mukolytikum","Beta-Blocker","Vasopressor","Antikoagulans"],richtig:0},
+{frage:["Adenosin wird typischerweise eingesetzt bei?"],antworten:["AV-Knoten-Reentry-Tachykardie","Paracetamolintoxikation","Akutem Koronarsyndrom","Sepsis"],richtig:0},
+{frage:["Welche Initialdosis Adenosin ist für Erwachsene im bisherigen Material genannt?"],antworten:["3 mg sehr schnell i.v. als Bolus","6 mg langsam i.v. über 10 Minuten","12 mg oral","250 mg i.v."],richtig:0},
+{frage:["Welche Initialdosis Adenosin ist auf der Lernkarte angegeben?"],antworten:["6 mg i.v.","3 mg i.v.","12 mg i.v.","18 mg i.v."],richtig:0},
+{frage:["Welche zweite Dosis Adenosin ist auf der Lernkarte angegeben?"],antworten:["12 mg i.v.","6 mg i.v.","3 mg i.v.","1 mg i.v."],richtig:0},
+{frage:["Welche dritte Dosis Adenosin ist auf der Lernkarte angegeben?"],antworten:["18 mg i.v.","12 mg i.v.","6 mg i.v.","0,5 mg i.v."],richtig:0},
+{frage:["Was muss bei Adenosin beachtet werden?"],antworten:["Gabe unter EKG-Kontrolle","Nur oral geben","Vorher ASS geben","Mit Glukose mischen"],richtig:0},
+{frage:["Welche CAVE-Aussage steht auf der Adenosin-Karte?"],antworten:["Asystolie ist möglich, Reanimationsbereitschaft","Immer langsame Infusion","Nie bei Tachykardie","Nur intramuskulär geben"],richtig:0},
+{frage:["Welche Wirkung von Adenosin ist beschrieben?"],antworten:["Kurzzeitige totale AV-Blockierung","Dauerhafte Steigerung der Herzfrequenz","Direkte Analgesie","Thrombozytenhemmung"],richtig:0},
+{frage:["Welche Nebenwirkung passt zu Adenosin?"],antworten:["Bradykardie bis Asystolie","Hyperglykämie","Mydriasis","Trockene Haut"],richtig:0},
+{frage:["Wirkdauer von Adenosin laut Karte?"],antworten:["Unter 10 Sekunden","30 Minuten","2 Stunden","15 Stunden"],richtig:0},
+{frage:["Wirkeintritt von Adenosin laut Karte?"],antworten:["Sofort","1 bis 3 Minuten","2 bis 5 Minuten","15 Minuten"],richtig:0},
+{frage:["Adrenalin wird eingesetzt bei?"],antworten:["Herz-Kreislauf-Stillstand","AVNRT","Paracetamolintoxikation","Chronischen Schmerzen"],richtig:0},
+{frage:["Welche Adrenalin-Dosis ist bei Reanimation genannt?"],antworten:["1 mg i.v. Bolus","0,1 mg oral","3 mg i.v. schnell","250 mg i.v."],richtig:0},
+{frage:["Welche Adrenalin-Dosis ist bei Anaphylaxie genannt?"],antworten:["0,5 mg i.m.","3 mg i.v.","250 mg i.v.","100 mg oral"],richtig:0},
+{frage:["Welche Nebenwirkung passt zu Adrenalin?"],antworten:["Tachykarde Rhythmusstörungen","AV-Block III°","Urtikaria als Leitsymptom","Blutungszeit verlängert"],richtig:0},
+{frage:["Welche Interaktion ist für Adrenalin beschrieben?"],antworten:["Nicht zusammen mit Natriumhydrogencarbonat über einen Zugang","Nicht mit Penicillinen","Nicht mit Morphin","Nicht mit Heparin"],richtig:0},
+{frage:["Atropin wird als was bezeichnet?"],antworten:["Parasympatholytikum","Benzodiazepin","Klasse-III-Antiarrhythmikum","Opioid"],richtig:0},
+{frage:["Wirkung von Atropin am Herzen?"],antworten:["Herzfrequenzsteigerung","Bradykardie bei jeder Dosis","QT-Verkürzung","Asystolie als Hauptwirkung"],richtig:0},
+{frage:["Welche weitere Wirkung von Atropin ist genannt?"],antworten:["Bronchodilatation","Thrombozytenhemmung","Sedierung","Antikonvulsion"],richtig:0},
+{frage:["Welche Nebenwirkung passt zu Atropin?"],antworten:["Mund- und Hauttrockenheit","Hypoglykämie","Urtikaria","Muskelrelaxation als Nebenwirkung"],richtig:0},
+{frage:["Welche okuläre Nebenwirkung ist auf der Karte genannt?"],antworten:["Glaukomanfall","Miosis","Nystagmus","Blindheit als Regelfall"],richtig:0},
+{frage:["Welche CAVE-Aussage steht bei Atropin?"],antworten:["Dosen unter 0,5 mg können paradoxe Reaktionen auslösen","Immer langsam über 20 Minuten geben","Immer nur oral","Nie bei Bradykardie geben"],richtig:0},
+{frage:["Atropin initial bei Bradykardie Erwachsene?"],antworten:["0,5 mg i.v.","5 mg i.v.","1 mg/kg i.v.","0,1 mg i.v."],richtig:0},
+{frage:["Atropin Maximaldosis bei Bradykardie Erwachsene?"],antworten:["3 mg","0,5 mg","5 mg","100 mg"],richtig:0},
+{frage:["Atropin initial bei Alkylphosphat-Intoxikation Erwachsene?"],antworten:["5 mg i.v.","0,5 mg i.v.","10 mg oral","1 mg i.m."],richtig:0},
+{frage:["Atropin bei Alkylphosphat-Intoxikation kann gesteigert werden bis?"],antworten:["Maximal 100 mg","Maximal 3 mg","Maximal 10 mg","Maximal 5 mg"],richtig:0},
+{frage:["Wirkdauer von Atropin laut Karte?"],antworten:["Etwa 30 Minuten bis 2 Stunden","Unter 10 Sekunden","15 Stunden","24 Stunden"],richtig:0},
+{frage:["Wirkeintritt von Atropin laut Karte?"],antworten:["1 bis 3 Minuten","Sofort","15 Minuten","2 bis 5 Minuten"],richtig:0},
+{frage:["Amiodaron wird als was bezeichnet?"],antworten:["Klasse-III-Antiarrhythmikum","Benzodiazepin","Parasympatholytikum","Opioid"],richtig:0},
+{frage:["Welche Hauptwirkung von Amiodaron ist beschrieben?"],antworten:["Verlängerung von Repolarisationsdauer und Refraktärzeit","Parasympathikusblockade","GABA-Verstärkung","Thrombozytenhemmung"],richtig:0},
+{frage:["Wann wird Amiodaron in der Reanimation laut Karte eingesetzt?"],antworten:["Nach der 3. erfolglosen Defibrillation","Vor dem ersten Schock","Nach ROSC","Nur bei Asystolie"],richtig:0},
+{frage:["Reanimationsdosis Amiodaron Erwachsene?"],antworten:["300 mg i.v. nach 3. Defi","150 mg i.v. nach 3. Defi","6 mg i.v.","0,5 mg i.v."],richtig:0},
+{frage:["Repetitionsdosis Amiodaron Erwachsene in der Reanimation?"],antworten:["150 mg i.v. nach 5. Defi","300 mg i.v. nach 5. Defi","5 mg/kg i.v.","10 mg i.v."],richtig:0},
+{frage:["Amiodaron bei Tachykardie Erwachsene laut Karte?"],antworten:["300 mg i.v. als KI über 20 Minuten in 5%iger Glukoselösung","300 mg als Bolus in Sekunden","150 mg p.o.","6 mg i.v."],richtig:0},
+{frage:["Welche Nebenwirkung passt zu Amiodaron?"],antworten:["QT-Verlängerung","Mundtrockenheit","Paradoxe Bradykardie unter 0,5 mg","Atemdepression als Leitsymptom"],richtig:0},
+{frage:["Welche weitere Nebenwirkung ist auf der Karte genannt?"],antworten:["Hypotonie","Glaukomanfall","Anterograde Amnesie","Asystolie unter jeder Gabe"],richtig:0},
+{frage:["Welche endokrine Nebenwirkung ist bei Amiodaron genannt?"],antworten:["Hyper- oder Hypothyreose","Nebennierenkrise","Diabetes insipidus","SIADH"],richtig:0},
+{frage:["Welche Kontraindikation bei Tachykardie ist auf der Karte genannt?"],antworten:["QT-Verlängerung","VF in Reanimation","pVT in Reanimation","Keine Besonderheit"],richtig:0},
+{frage:["Welche Aussage zu Kontraindikationen in der Reanimation steht auf der Karte?"],antworten:["Bei Reanimation keine","Absolute KI immer vorhanden","Nur bei Kindern erlaubt","Nur oral erlaubt"],richtig:0},
+{frage:["Wirkeintritt von Amiodaron laut Karte?"],antworten:["2 bis 5 Minuten","Sofort","1 bis 3 Minuten","15 Minuten"],richtig:0},
+{frage:["Wirkdauer von Amiodaron laut Karte?"],antworten:["Etwa 15 Minuten, Plasmakonzentration nimmt innerhalb von 4 Stunden ab","Unter 10 Sekunden","15 Stunden","30 Minuten bis 2 Stunden"],richtig:0},
+{frage:["Diazepam wird als was bezeichnet?"],antworten:["Benzodiazepin und Sedativum","Klasse-III-Antiarrhythmikum","Parasympatholytikum","Katecholamin"],richtig:0},
+{frage:["Welche Wirkung von Diazepam ist genannt?"],antworten:["Sedierend, anxiolytisch, antikonvulsiv und muskelrelaxierend","QT-Verlängerung","Bronchodilatation","Thrombozytenhemmung"],richtig:0},
+{frage:["Indikation Diazepam laut Karte?"],antworten:["Status epilepticus oder Fieberkrampf","ACS","AVNRT","Bradykardie"],richtig:0},
+{frage:["Diazepam Erwachsene initial laut Karte?"],antworten:["5 bis 10 mg i.v.","0,5 mg i.v.","300 mg i.v.","6 mg i.v."],richtig:0},
+{frage:["Diazepam Kinder unter 15 kg laut Karte?"],antworten:["5 mg rektal","10 mg rektal","5 bis 10 mg i.v.","0,5 mg i.v."],richtig:0},
+{frage:["Diazepam Kinder über 15 kg laut Karte?"],antworten:["10 mg rektal","5 mg rektal","20 mg i.v. sofort","300 mg i.v."],richtig:0},
+{frage:["Welche CAVE-Aussage passt zu Diazepam?"],antworten:["Langsam i.v. applizieren, maximal 1 mg pro Minute","Immer als schneller Bolus","Nur oral anwenden","Kein Antidot vorhanden"],richtig:0},
+{frage:["Antidot bei Diazepam-Überdosierung laut Karte?"],antworten:["Flumazenil","Naloxon","Physostigmin","Protamin"],richtig:0},
+{frage:["Welche Nebenwirkung passt zu Diazepam?"],antworten:["Atemdepression","QT-Verlängerung","Mydriasis","Trockene Haut"],richtig:0},
+{frage:["Welche weitere Nebenwirkung ist bei Diazepam genannt?"],antworten:["Anterograde Amnesie","Thrombozytopenie","Hypernatriämie","Polyurie"],richtig:0},
+{frage:["Wirkeintritt von Diazepam laut Karte?"],antworten:["1 bis 3 Minuten","Sofort","2 bis 5 Minuten","30 Minuten"],richtig:0},
+{frage:["Wirkdauer von Diazepam laut Karte?"],antworten:["Etwa 15 Stunden","Unter 10 Sekunden","15 Minuten","30 Minuten bis 2 Stunden"],richtig:0}
+];
+
+const originalDrLudwigQuestions = [
+{frage:["Was ist nach der Berliner-Polytrauma-Definition zusätzlich zu mindestens zwei schwer verletzten Körperregionen nötig?"],antworten:["Mindestens ein Zusatzkriterium wie Hypotension, GCS ≤ 8, Azidose, Koagulopathie oder Alter ≥ 70","Nur eine positive FAST-Untersuchung","Nur ein abnormaler Lactatwert","Nur ein auffälliges EKG"],richtig:0},
+{frage:["Welcher systolische Blutdruck ist als Kriterium der Berliner-Polytrauma-Definition genannt?"],antworten:["RRsyst ≤ 90 mmHg","RRsyst ≤ 100 mmHg","RRsyst ≤ 110 mmHg","RRsyst ≤ 120 mmHg"],richtig:0},
+{frage:["Welcher GCS-Wert ist in der Berliner-Polytrauma-Definition als Kriterium genannt?"],antworten:["GCS ≤ 8","GCS ≤ 10","GCS ≤ 12","GCS ≤ 14"],richtig:0},
+{frage:["Welcher Base Excess ist in der Berliner-Polytrauma-Definition als Azidose-Kriterium genannt?"],antworten:["BE ≤ -6,0","BE ≤ -2,0","BE ≤ -4,0","BE ≤ -8,0"],richtig:0},
+{frage:["Welche INR ist in der Berliner-Polytrauma-Definition als Koagulopathie-Kriterium genannt?"],antworten:["INR ≥ 1,4","INR ≥ 1,1","INR ≥ 1,2","INR ≥ 2,0"],richtig:0},
+{frage:["Welche Altersgrenze ist in der Berliner-Polytrauma-Definition genannt?"],antworten:["≥ 70 Jahre","≥ 60 Jahre","≥ 65 Jahre","≥ 75 Jahre"],richtig:0},
+{frage:["Welche Phase des Schockraums umfasst 0 bis 3 Minuten?"],antworten:["Phase Alpha, Primary Survey","Phase Bravo, Secondary Survey","Phase Charlie, Definitive Care","Phase Delta"],richtig:0},
+{frage:["Welches Ziel hat die Phase Alpha?"],antworten:["Initiale Stabilisierung plus Basismonitoring und Basisdiagnostik","Komplette körperliche Untersuchung","Definitive operative Versorgung","Nur Laboranforderung"],richtig:0},
+{frage:["Welche Phase des Schockraums umfasst 3 bis 10 Minuten?"],antworten:["Phase Bravo, Secondary Survey","Phase Alpha, Primary Survey","Phase Charlie, Definitive Care","Phase Echo"],richtig:0},
+{frage:["Welche Phase des Schockraums umfasst 10 bis 30 Minuten?"],antworten:["Phase Charlie, Definitive Care","Phase Alpha, Primary Survey","Phase Bravo, Secondary Survey","Phase Delta"],richtig:0},
+{frage:["Was bedeutet x oder c im xABCDE nach der Folie?"],antworten:["Control bleeding und C-spine control","Capnography und CPR","Circulation und CT","Check blood gas und collar"],richtig:0},
+{frage:["Welche Maßnahme ist bei A im Polytrauma aus Sicht der Anästhesie genannt?"],antworten:["Sicherung der Atemwege unter Immobilisation der HWS","Sofortige CT-Angiografie","Nur Sauerstoff über Nasenbrille","Nur Monitoring ohne Intervention"],richtig:0},
+{frage:["Welche Probleme werden bei B ausdrücklich genannt?"],antworten:["Spannungspneumothorax, massiver Hämatothorax, instabiler Thorax","Nur Asthma und COPD","Nur Lungenembolie","Nur Aspiration"],richtig:0},
+{frage:["Welche Maßnahmen sind bei B auf der Folie genannt?"],antworten:["O2-Gabe, Dekompression der Pleura, Beatmung","Nur Volumentherapie","Nur Pupillenkontrolle","Nur Wärmeerhalt"],richtig:0},
+{frage:["Welche Probleme werden bei C ausdrücklich genannt?"],antworten:["Perikardtamponade, massive Blutung, Hypovolämie","Nur Hypothermie","Nur Sepsis","Nur Hypertonie"],richtig:0},
+{frage:["Was ist laut Folie bei C als Maßnahme genannt?"],antworten:["Dekompression des Perikards, Blutungskontrolle, Infusionstherapie, Katecholamintherapie","Nur Intubation","Nur Lagerung","Nur Sonografie ohne Therapie"],richtig:0},
+{frage:["Woran sollte bei der Wahl des Gefäßzugangs im Schockraum gedacht werden?"],antworten:["An die Option eines intraossären Zugangs","Ausschließlich zentralvenöser Zugang","Ausschließlich arterieller Zugang","Nur Ports verwenden"],richtig:0},
+{frage:["Welche Kanüle ist laut Modellrechnung für schnellen Volumenersatz deutlich schneller?"],antworten:["G14","G20","Beide gleich schnell","Nur ZVK"],richtig:0},
+{frage:["Wie hoch ist laut Folie die Letalität nicht-traumatologischer Patienten ungefähr?"],antworten:["Ca. 29 bis 40 Prozent","Ca. 5 bis 10 Prozent","Ca. 10 bis 15 Prozent","Ca. 50 bis 60 Prozent"],richtig:0},
+{frage:["Welcher FiO2-Bereich ist für High Flow auf der Folie genannt?"],antworten:["0,21 bis 1,0","0,3 bis 0,6","0,5 bis 0,75","0,85 bis 0,9"],richtig:0},
+{frage:["Welcher Flow-Bereich ist für High Flow auf der Folie genannt?"],antworten:["20 bis 60 l/min","2 bis 10 l/min","5 bis 15 l/min","60 bis 100 l/min"],richtig:0},
+{frage:["Welcher Vorteil von High Flow ist auf der Folie genannt?"],antworten:["Totraumspülung","Sicherer Aspirationsschutz","Tiefe Sedierung","Volle Kreislaufunterstützung"],richtig:0},
+{frage:["Welcher weiterer Vorteil von High Flow ist auf der Folie genannt?"],antworten:["Hohe Compliance oder Adhärenz","Verpflichtende Intubation","Hohe Katecholaminersparnis","Sicherer Schutz vor Aspiration"],richtig:0},
+{frage:["Welcher Vorteil der NIV ist auf der Folie genannt?"],antworten:["Keine potenziell kritische Intubation oder Narkose","NIV ersetzt immer den Schockraum","NIV macht Monitoring überflüssig","NIV ist nur bei Traumapatienten sinnvoll"],richtig:0},
+{frage:["Was ist auf der NIV-Folie ebenfalls als Vorteil genannt?"],antworten:["Reduktion der Atemarbeit","Garantierter Aspirationsschutz","Automatische Schmerzfreiheit","Ausschluss einer Intubation in jedem Fall"],richtig:0},
+{frage:["Welche O2-Aussage ist für NIV auf der Folie genannt?"],antworten:["Nahezu 100 Prozent O2 sind möglich","Maximal 40 Prozent O2 sind möglich","NIV arbeitet immer nur mit Raumluft","NIV ist auf 60 Prozent O2 begrenzt"],richtig:0},
+{frage:["Welcher Maximalwert ist auf der NIV-Folie genannt?"],antworten:["Spitzendruck kleiner als ösophagealer Verschlussdruck, maximal 25 cmH2O","PEEP maximal 5 cmH2O","FiO2 maximal 0,6","Atemfrequenz maximal 12 pro Minute"],richtig:0},
+{frage:["Welche NIV-Form ist auf der Tabelle genannt?"],antworten:["CPAP","Nur High Flow","Nur IPPV","Nur BVM"],richtig:0},
+{frage:["Welche NIV-Form ist auf der Tabelle zusätzlich genannt?"],antworten:["Pressure Support Ventilation, NIPPV oder PSV","Nur ECMO","Nur APRV","Nur SIMV"],richtig:0},
+{frage:["Welche weitere Beatmungsform ist auf der Tabelle genannt?"],antworten:["Druckkontrollierte Beatmung, BILEVEL","Nur Spontanatmung","Nur volumenkontrolliert","Nur Jet-Ventilation"],richtig:0},
+{frage:["Was steht auf der Folie ausdrücklich als Hinweis?"],antworten:["Intubation erwägen","NIV immer fortführen","CPAP bei jedem Patienten","Keine Reevaluation nötig"],richtig:0},
+{frage:["Was soll laut Ablauf regelmäßig und bei Zustandsänderung passieren?"],antworten:["Reevaluation nach xABCDE","Nur Labor nachfordern","Nur CT wiederholen","Nur EKG schreiben"],richtig:0},
+{frage:["Was gehört laut E-Schritt bei Polytrauma dazu?"],antworten:["Entkleidung, Log Roll, Schutz gegen Wärmeverluste","Nur Temperatur messen","Nur Blutdruck messen","Nur Pupillenkontrolle"],richtig:0},
+{frage:["Was passiert bei Körperkerntemperatur unter 35°C laut Folie?"],antworten:["Die Aktivität der Gerinnungsfaktoren sinkt pro Grad um etwa 10 Prozent","Die Gerinnung wird schneller","Die Herzfrequenz steigt immer auf 180","Die Sauerstoffbindung fällt komplett aus"],richtig:0},
+{frage:["Was ist laut internistischem Schockraum ein zentrales Problem?"],antworten:["Komplexe Diagnosen, Differentialdiagnosen und Grunderkrankungen","Nur fehlende Laborwerte","Nur zu wenig CT-Zeit","Nur fehlende Betten"],richtig:0},
+{frage:["Was gehört laut Schockraumphase Bravo zum Ziel?"],antworten:["Komplette körperliche Untersuchung plus erweitertes Monitoring plus spezifische Diagnostik","Nur lebensrettende Sofortmaßnahmen","Nur Operation vorbereiten","Nur Transport organisieren"],richtig:0},
+{frage:["Was gehört laut Schockraumphase Charlie zum Ziel?"],antworten:["Abschluss notwendiger Diagnostik und interdisziplinäre Entscheidung über weitere Versorgung","Nur Primary Survey","Nur PEEP-Titration","Nur Wärmeerhalt"],richtig:0},
+{frage:["Was gehört zu D im Polytrauma laut Folie?"],antworten:["Neurologischer Status, intrakranielle Blutung, Hirnödem","Nur Pupillenweite","Nur GCS ohne Bildgebung","Nur Analgesie"],richtig:0},
+{frage:["Welche Maßnahme ist bei D genannt?"],antworten:["cCT und neurotraumatologische Interventionen","Nur High Flow","Nur Katecholamine","Nur Volumengabe"],richtig:0},
+{frage:["Welcher Punkt ist bei High Flow als zusätzlicher Effekt genannt?"],antworten:["Geringer PEEP-Effekt","Tiefe Sedierung","Sicherer Aspirationsschutz","Dauerhafte hämodynamische Stabilisierung"],richtig:0}
+];
+
+const originalEkgQuestions = [
+{frage:["Welcher Befund passt zu diesem EKG?"],image:"ekg/ekg1_sinusrhythmus.jpg",antworten:["Normaler Sinusrhythmus","Vorhofflimmern","AV-Knoten-Reentry-Tachykardie","Kammertachykardie"],richtig:0},
+{frage:["Welcher Befund passt zu diesem EKG?"],image:"ekg/ekg2_anteriorer_stemi.jpg",antworten:["Akuter Vorderwandinfarkt, anteriorer STEMI","Normaler Sinusrhythmus","Vorhofflimmern","Bradykardie"],richtig:0},
+{frage:["Wie lautet die wahrscheinlichste Diagnose?"],image:"ekg/ekg3_avnrt.jpg",antworten:["AV-Knoten-Reentry-Tachykardie","Sinusrhythmus","Vorhofflattern","Kompletter AV-Block"],richtig:0},
+{frage:["Was siehst du hier am ehesten?"],image:"ekg/ekg4_vorhofflimmern.jpg",antworten:["Vorhofflimmern","Normaler Sinusrhythmus","AV-Block I°","Linksschenkelblock"],richtig:0},
+{frage:["Welche Diagnose ist hier am wahrscheinlichsten?"],image:"ekg/ekg5_kammertachykardie.jpg",antworten:["Kammertachykardie","Vorhofflimmern","Sinusbradykardie","Inferiorer STEMI"],richtig:0}
+];
+
+
+const originalMirandaQuestions = [
+{frage:["Welche Maßnahme ist bei persistierender, lebensbedrohlicher Extremitätenblutung nach erfolglosem Druckverband primär indiziert?"],antworten:["Hochlagerung der Extremität über Herzniveau","Anlage eines lockeren Mullverbandes","Anlage eines Tourniquets proximal der Blutung","Sofortige Entfernung aller Koagel aus der Wunde"],richtig:2},
+{frage:["Welche Aussage zur Anlage eines Tourniquets ist korrekt?"],antworten:["Es wird distal der Blutung angelegt","Es darf über Gelenken positioniert werden","Es wird so fest angezogen, bis kein distaler Puls mehr tastbar ist","Es sollte alle 30 Minuten kurz gelöst werden"],richtig:2},
+{frage:["Welche Aussage zur Beckengurt-Anlage ist leitlinienkonform?"],antworten:["Anlage über dem Beckenkamm zur besseren Hebelwirkung","Anlage über dem Trochanter major zur effektiven Beckenringkompression","Anlage nur bei radiologisch gesicherter Fraktur","Anlage erst nach CT-Diagnostik"],richtig:1},
+{frage:["Welche Aussage zur Vakuummatratze ist korrekt?"],antworten:["Sie ist für Langzeitlagerung ungeeignet","Sie ersetzt das Spineboard in der technischen Rettung","Sie ist druckschonender als das Spineboard und für Transport geeignet","Sie darf im CT nicht verwendet werden"],richtig:2},
+{frage:["Welche Konstellation stellt eine absolute Indikation zur Atemwegssicherung im Schockraum dar?"],antworten:["GCS 12 ohne Ateminsuffizienz","GCS 9 mit suffizienter Spontanatmung","GCS kleiner 9","Schmerzangabe über 7 von 10"],richtig:2},
+{frage:["Welche Maßnahme hat im Rahmen der Log-Roll-Technik oberste Priorität?"],antworten:["Schnelligkeit vor Koordination","Führung durch die Person am Becken","Achsengerechte Bewegung unter Führung der Kopf-Person","Drehung durch maximal zwei Personen"],richtig:2},
+{frage:["Im Rahmen des Stop-the-Bleed-Konzepts gilt:"],antworten:["Ein durchgebluteter Druckverband sollte vollständig entfernt und neu angelegt werden","Nach 10 Minuten ineffektiver Kompression sollte grundsätzlich abgewartet werden","Bei Ineffektivität innerhalb weniger Minuten erfolgt Eskalation zur nächsten Stufe","Druckpunkte ersetzen dauerhaft den Druckverband"],richtig:2},
+{frage:["Welche Kombination beschreibt korrekt pathophysiologische Faktoren des tödlichen Diamanten beim Polytrauma?"],antworten:["Hypothermie, Azidose, Koagulopathie, Hypokalzämie","Hyperthermie, Alkalose, Thrombozytose, Hyperkalzämie","Hypoxie, Hyperglykämie, Hypernatriämie, Hypothermie","Bradykardie, Hypotonie, Azidose, Hyperkalzämie"],richtig:0},
+{frage:["Wo wird ein Beckengurt korrekt angelegt?"],antworten:["Über dem Beckenkamm","Über dem Trochanter major","Über dem Bauchnabel","Über der Symphyse alleine"],richtig:1},
+{frage:["Was gilt für die Zeitdokumentation beim Tourniquet?"],antworten:["Nur bei Entlassung notieren","TT-Zeit gut sichtbar dokumentieren","Nur im Arztbrief erwähnen","Erst nach zwei Stunden dokumentieren"],richtig:1},
+{frage:["Welche Aussage zu manueller Kompression ist richtig?"],antworten:["Häufiges Nachschauen ist sinnvoll","Direkter, kontinuierlicher Druck auf die Blutungsquelle","Nur kurz drücken und dann pausieren","Kompression ersetzt jede Re-Evaluation"],richtig:1},
+{frage:["Wie lange soll bei Stufe 1 mindestens kontinuierlich komprimiert werden?"],antworten:["Etwa 1 Minute","Mindestens 10 Minuten","30 Sekunden","Nur bis der Verband vorbereitet ist"],richtig:1},
+{frage:["Was ist ein typischer Fehler bei Stufe 1 der Blutungskontrolle?"],antworten:["Zu frühe Eskalation","Häufiges Anheben der Auflage","Zu frühe Dokumentation","Zu viel Wärmemanagement"],richtig:1},
+{frage:["Was ist bei Hämostyptika wie Chitosan korrekt?"],antworten:["Sie ersetzen den Druckverband vollständig","Sie werden nach kurzer Zeit wieder entfernt","Sie werden in die Wunde eingebracht und mit Druckverband kombiniert","Sie sind nur bei stumpfem Trauma sinnvoll"],richtig:2},
+{frage:["Welche Kontraindikation ist für Chitosan im Material genannt?"],antworten:["Bekannte Allergie gegen Schalentiere","GCS kleiner 9","COPD","Tachykardie"],richtig:0},
+{frage:["Welche Aussage zu Torso-Blutungen ist korrekt?"],antworten:["Tourniquets sind am Rumpf Standard","Am Torso sind Tourniquets anatomisch nicht sinnvoll","Torso-Blutungen werden nur mit Druckpunkten behandelt","Bei Torso-Blutungen darf kein Hämostyptikum genutzt werden"],richtig:1},
+{frage:["Was ist bei einem durchgebluteten ersten Verband sinnvoll?"],antworten:["Alle Materialien entfernen und neu beginnen","Materialreserve bereithalten, zusätzlicher Druck und Re-Evaluation","Verband sofort komplett lockern","Nur fotografisch dokumentieren"],richtig:1},
+{frage:["Welche Aussage zur Log-Roll-Technik passt am besten?"],antworten:["Der Kopf wird zuletzt mitbewegt","Die Kopf-Person führt die achsengerechte Bewegung","Die Becken-Person entscheidet alleine","Die Technik ist nur ohne HWS-Verdacht sinnvoll"],richtig:1},
+{frage:["Welche Aussage zur Atemwegssicherung bei HWS-Verdacht ist korrekt?"],antworten:["Stifneck bleibt immer während der Intubation angelegt","HWS-Neutralstellung sichern, Stifneck abnehmen und manuell stabilisieren","Bei HWS-Verdacht keine Intubation","Traktion am Kopf verbessert die Situation"],richtig:1},
+{frage:["Was gilt laut Material bei Spannungspneumothorax?"],antworten:["Erst Röntgen abwarten","Sofortige Entlastung ohne Röntgen abzuwarten","Nur Sauerstoffgabe","Nur BGA abnehmen"],richtig:1},
+{frage:["Welche Schockzeichen sind im C-Problem genannt?"],antworten:["Hypotonie, Tachykardie, kalte Haut, mentale Veränderung","Nur Fieber und Husten","Nur Hypertonie und Bradykardie","Nur Kopfschmerz und Übelkeit"],richtig:0},
+{frage:["Welche Zugänge werden im C-Problem bevorzugt?"],antworten:["Nur ZVK","2 großlumige periphere Zugänge 14 bis 16G oder IO","Nur arterielle Kanüle","Nur Port"],richtig:1},
+{frage:["Welche Aussage zum Wärmemanagement ist richtig?"],antworten:["Kalte Infusionen sparen Zeit","Hypothermie ist Teil der letalen Trias","Wärmemanagement ist erst nach CT relevant","Raumtemperatur spielt keine Rolle"],richtig:1},
+{frage:["Was gehört zum Exposure-Schritt?"],antworten:["Vollständiges Entkleiden und systematischer Body-Check","Nur Pupillenkontrolle","Nur Blutdruck messen","Nur Sonographie"],richtig:0}
+];
+
+const modules = {
+  xabcde: { title:"xABCDE", time:25, questions:originalXabcdeQuestions },
+  labor: { title:"Laborwerte", time:25, questions:originalLaborQuestions },
+  medikamente: { title:"Medikamente", time:25, questions:originalMedikamentQuestions },
+  ekg: { title:"EKG Kurs", time:25, questions:originalEkgQuestions },
+  drludwig: { title:"Dr. Ludwig", time:25, questions:originalDrLudwigQuestions },
+  miranda: { title:"Miranda de Queiroz", time:25, questions:originalMirandaQuestions }
+};
+
+let activeModuleKey = null;
+let aktiveFragen = [];
+let falschBeantwortet = [];
+let index = 0;
+let punktzahl = 0;
+let timer = null;
+let zeit = 25;
+let beantwortet = false;
+let gesamtGestellt = 0;
+let firstRoundCount = 0;
+let jokerUsed = false;
+
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function prepareQuestions(questionList) {
+  const shuffledQuestions = shuffleArray(questionList);
+  return shuffledQuestions.map(q => {
+    const frageText = Array.isArray(q.frage)
+      ? q.frage[Math.floor(Math.random() * q.frage.length)]
+      : q.frage;
+
+    const options = q.antworten.map((text, idx) => ({ text, originalIndex: idx }));
+    const mixedOptions = shuffleArray(options);
+    const newCorrectIndex = mixedOptions.findIndex(opt => opt.originalIndex === q.richtig);
+
+    return {
+      frage: frageText,
+      image: q.image || null,
+      antworten: mixedOptions.map(opt => opt.text),
+      richtig: newCorrectIndex
+    };
+  });
+}
+
+function show(id) {
+  document.getElementById("startScreen").classList.add("hidden");
+  document.getElementById("quizScreen").classList.add("hidden");
+  document.getElementById("resultScreen").classList.add("hidden");
+  document.getElementById(id).classList.remove("hidden");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function startModule(key) {
+  const mod = modules[key];
+  if (!mod || !mod.questions.length) return;
+
+  activeModuleKey = key;
+  aktiveFragen = prepareQuestions(mod.questions);
+  falschBeantwortet = [];
+  index = 0;
+  punktzahl = 0;
+  gesamtGestellt = 0;
+  firstRoundCount = aktiveFragen.length;
+  jokerUsed = false;
+
+  const jokerBtn = document.getElementById("jokerBtn");
+  jokerBtn.disabled = false;
+  jokerBtn.classList.remove("used");
+
+  document.getElementById("moduleBadge").innerText = mod.title;
+  show("quizScreen");
+  zeigeFrage();
+}
+
+function updateProgress() {
+  document.getElementById("progress").innerText =
+    "Direkt richtig: " + punktzahl + " von " + firstRoundCount +
+    " | Aktuelle Runde: Frage " + (index + 1) + " von " + aktiveFragen.length;
+}
+
+function zeigeFrage() {
+  if (index >= aktiveFragen.length) {
+    if (falschBeantwortet.length > 0) {
+      aktiveFragen = shuffleArray([...falschBeantwortet]);
+      falschBeantwortet = [];
+      index = 0;
+      alert("Jetzt kommen die noch nicht sicheren Fragen erneut.");
+    } else {
+      quizBeenden();
+      return;
+    }
+  }
+
+  beantwortet = false;
+  zeit = modules[activeModuleKey].time;
+  clearInterval(timer);
+  gesamtGestellt++;
+
+  document.getElementById("feedback").innerText = "";
+  document.getElementById("nextBtn").classList.add("hidden");
+
+  const frageObj = aktiveFragen[index];
+  document.getElementById("frage").innerText = frageObj.frage;
+
+  const ekgFrame = document.getElementById("ekgFrame");
+  const img = document.getElementById("ekgImage");
+  if (frageObj.image) {
+    img.src = frageObj.image;
+    ekgFrame.style.display = "block";
+  } else {
+    img.removeAttribute("src");
+    ekgFrame.style.display = "none";
+  }
+
+  const antwortenBox = document.getElementById("antworten");
+  antwortenBox.innerHTML = "";
+
+  frageObj.antworten.forEach((antwort, i) => {
+    const btn = document.createElement("button");
+    btn.innerText = antwort;
+    btn.className = "answer-btn";
+    btn.dataset.index = i;
+    btn.onclick = () => pruefeAntwort(i);
+    antwortenBox.appendChild(btn);
+  });
+
+  document.getElementById("timer").innerText = "Zeit: " + zeit;
+  updateProgress();
+
+  timer = setInterval(() => {
+    zeit--;
+    document.getElementById("timer").innerText = "Zeit: " + zeit;
+    if (zeit <= 0) {
+      clearInterval(timer);
+      zeitAbgelaufen();
+    }
+  }, 1000);
+}
+
+function pruefeAntwort(auswahl) {
+  if (beantwortet) return;
+  beantwortet = true;
+  clearInterval(timer);
+
+  const frageObj = aktiveFragen[index];
+  const buttons = document.querySelectorAll(".answer-btn");
+
+  buttons.forEach((btn, i) => {
+    btn.classList.add("disabled");
+    btn.disabled = true;
+    if (i === frageObj.richtig) btn.classList.add("correct");
+  });
+
+  if (auswahl === frageObj.richtig) {
+    document.getElementById("feedback").innerText = "Richtig";
+    punktzahl++;
+  } else {
+    buttons[auswahl].classList.add("wrong");
+    document.getElementById("feedback").innerText = "Falsch";
+    falschBeantwortet.push(frageObj);
+  }
+
+  updateProgress();
+  document.getElementById("nextBtn").classList.remove("hidden");
+}
+
+function zeitAbgelaufen() {
+  if (beantwortet) return;
+  beantwortet = true;
+
+  const frageObj = aktiveFragen[index];
+  const buttons = document.querySelectorAll(".answer-btn");
+
+  buttons.forEach((btn, i) => {
+    btn.classList.add("disabled");
+    btn.disabled = true;
+    if (i === frageObj.richtig) btn.classList.add("correct");
+  });
+
+  document.getElementById("feedback").innerText = "Zeit abgelaufen";
+  falschBeantwortet.push(frageObj);
+  updateProgress();
+  document.getElementById("nextBtn").classList.remove("hidden");
+}
+
+function useJoker() {
+  if (jokerUsed || beantwortet) return;
+
+  const frageObj = aktiveFragen[index];
+  const buttons = [...document.querySelectorAll(".answer-btn")];
+  const falscheButtons = buttons.filter((btn, i) => i !== frageObj.richtig && !btn.classList.contains("removed"));
+
+  if (falscheButtons.length === 0) return;
+
+  const auswahl = falscheButtons[Math.floor(Math.random() * falscheButtons.length)];
+  auswahl.classList.add("removed");
+
+  jokerUsed = true;
+  const jokerBtn = document.getElementById("jokerBtn");
+  jokerBtn.disabled = true;
+  jokerBtn.classList.add("used");
+}
+
+function nextQuestion() {
+  index++;
+  zeigeFrage();
+}
+
+function quizBeenden() {
+  clearInterval(timer);
+  const result = document.getElementById("result");
+  const prozent = Math.round((punktzahl / firstRoundCount) * 100);
+
+  result.innerHTML =
+    "<p>Modul: <strong>" + modules[activeModuleKey].title + "</strong></p>" +
+    "<p>Direkt richtig beantwortet: " + punktzahl + " von " + firstRoundCount + "</p>" +
+    "<p>Ergebnis im ersten Durchgang: " + prozent + " Prozent</p>" +
+    "<p>Insgesamt gestellte Fragen inklusive Wiederholungen: " + gesamtGestellt + "</p>" +
+    "<p>Fragenfolge und Antwortreihenfolge werden bei jedem Neustart neu gemischt.</p>" +
+    "<p>Der Joker konnte pro Durchlauf einmal verwendet werden.</p>";
+
+  show("resultScreen");
+}
+
+function restartCurrentModule() {
+  if (!activeModuleKey) {
+    show("startScreen");
+    return;
+  }
+  startModule(activeModuleKey);
+}
+
+function goHome() {
+  clearInterval(timer);
+  show("startScreen");
+}
+</script>
+</body>
+</html>
