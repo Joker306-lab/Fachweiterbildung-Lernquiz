@@ -1,167 +1,29 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Notfallpflege Quiz</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notfallpflege Quiz</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="app-shell">
-    <section id="landingScreen" class="screen active">
-      <div class="landing-phone clean-landing">
-        <div class="landing-content clean-landing-content">
-          <div class="landing-avatar-wrap">
-            <img src="assets/avatar.jpg" alt="Notfallpflege Avatar" class="landing-avatar">
-          </div>
-          <h1 class="landing-title">Notfallpflege Quiz</h1>
-          <p class="landing-subtitle">Trainiere Entscheidungen<br>unter Zeitdruck</p>
-          <button class="start-cta" onclick="openHome()">Start</button>
-        </div>
-      </div>
-    </section>
 
-    <section id="homeScreen" class="screen">
-      <div class="hero">
-        <div class="hero-logo css-logo-inline" aria-hidden="true"><div class="logo-badge small">NF</div></div>
-        <p class="hero-kicker">Fachweiterbildung Lernquiz</p>
-        <h2>Wissen trainieren für Schockraum, Notaufnahme und Akutsituationen</h2>
-        <p class="hero-copy">
-          Dieses Quiz dient zum wiederholten, strukturierten Lernen. Du trainierst xABCDE,
-          Laborwerte, Medikamente, EKG, Polytrauma und Immobilisation mit zufälliger Reihenfolge,
-          Timer, Joker, Sounds und Fehlerwiederholung.
-        </p>
-      </div>
+<section id="landingScreen" class="screen active">
+  <div class="clean-landing">
 
-      <div class="mode-row">
-        <button class="mode-btn active" id="modeLearningBtn" onclick="setMode('learning')">Lernmodus</button>
-        <button class="mode-btn" id="modeExamBtn" onclick="setMode('exam')">Prüfungsmodus</button>
-      </div>
+    <img src="assets/avatar.jpg" class="hero-avatar">
 
-      <div class="module-list">
-        <button class="module-card module-red" onclick="startQuiz('xabcd')">
-          <span class="module-number">1.</span>
-          <span class="module-text">
-            <strong>xABCDE</strong>
-            <small>Initiale Beurteilung, AVPU, Airway, Breathing, Circulation</small>
-          </span>
-        </button>
+    <h1 class="hero-title">Notfallpflege Quiz</h1>
 
-        <button class="module-card module-blue" onclick="startQuiz('labor')">
-          <span class="module-number">2.</span>
-          <span class="module-text">
-            <strong>Laborwerte</strong>
-            <small>Normwerte, Röhrchen, klinische Einordnung</small>
-          </span>
-        </button>
+    <p class="hero-subtitle">
+      Trainiere Entscheidungen<br>unter Zeitdruck
+    </p>
 
-        <button class="module-card module-violet" onclick="startQuiz('med')">
-          <span class="module-number">3.</span>
-          <span class="module-text">
-            <strong>Medikamente</strong>
-            <small>Indikation, Dosierung, Wirkung, Nebenwirkungen</small>
-          </span>
-        </button>
+    <button class="start-btn" onclick="openHome()">START</button>
 
-        <button class="module-card module-green" onclick="startQuiz('ekg')">
-          <span class="module-number">4.</span>
-          <span class="module-text">
-            <strong>EKG Kurs</strong>
-            <small>Bilder sehen, einordnen, Rhythmus und Befund erkennen</small>
-          </span>
-        </button>
-
-        <button class="module-card module-orange" onclick="startQuiz('ludwig')">
-          <span class="module-number">5.</span>
-          <span class="module-text">
-            <strong>Dr. Ludwig</strong>
-            <small>Internistischer Patient und Polytrauma aus Sicht der Anästhesie</small>
-          </span>
-        </button>
-
-        <button class="module-card module-slate" onclick="startQuiz('miranda')">
-          <span class="module-number">6.</span>
-          <span class="module-text">
-            <strong>Miranda de Queiroz</strong>
-            <small>Positionierung, Immobilisation, Stop the Bleed</small>
-          </span>
-        </button>
-
-        <button class="module-card module-dark" onclick="startQuiz('wrong')">
-          <span class="module-number">7.</span>
-          <span class="module-text">
-            <strong>Meine Schwächen</strong>
-            <small>Nur die falsch oder nicht beantworteten Fragen</small>
-          </span>
-        </button>
-      </div>
-    </section>
-
-    <section id="quizScreen" class="screen">
-      <div class="quiz-topbar">
-        <button class="ghost-btn" onclick="goHome()">Zurück</button>
-        <div class="quiz-title-wrap">
-          <p id="moduleLabel" class="quiz-module-label"></p>
-          <p id="counter" class="quiz-counter"></p>
-        </div>
-        <button class="ghost-btn" onclick="restartQuiz()">Neu</button>
-      </div>
-
-      <div class="progress-outer">
-        <div id="progressBar" class="progress-inner"></div>
-      </div>
-
-      <div id="imageWrap" class="image-wrap hidden">
-        <img id="questionImage" src="" alt="Fragenbild">
-      </div>
-
-      <div class="question-card">
-        <h2 id="question" class="question-text"></h2>
-        <div id="answers" class="answers"></div>
-
-        <div class="action-row">
-          <button id="jokerBtn" class="accent-btn gold" onclick="useJoker()">Joker einsetzen</button>
-          <button id="nextBtn" class="accent-btn blue hidden" onclick="nextQuestion()">Nächste Frage</button>
-        </div>
-
-        <div class="status-row">
-          <div id="timer" class="timer-pill">Zeit: 25</div>
-          <div id="scoreText" class="timer-pill muted">Richtig: 0</div>
-        </div>
-
-        <p id="feedback" class="feedback"></p>
-        <p id="explanation" class="explanation hidden"></p>
-      </div>
-    </section>
-
-    <section id="resultScreen" class="screen">
-      <div class="hero hero-small">
-        <div class="hero-logo small-logo css-logo-inline" aria-hidden="true"><div class="logo-badge small">NF</div></div>
-        <p class="hero-kicker">Auswertung</p>
-        <h2 id="resultTitle">Durchgang beendet</h2>
-        <p id="resultText" class="hero-copy"></p>
-      </div>
-
-      <div class="module-list single-actions">
-        <button class="module-card module-blue" onclick="restartQuiz()">
-          <span class="module-number">↺</span>
-          <span class="module-text">
-            <strong>Gleiches Modul erneut starten</strong>
-            <small>Nochmal durchgehen mit neuer Reihenfolge</small>
-          </span>
-        </button>
-
-        <button class="module-card module-dark" onclick="goHome()">
-          <span class="module-number">⌂</span>
-          <span class="module-text">
-            <strong>Zur Startseite</strong>
-            <small>Anderes Thema auswählen</small>
-          </span>
-        </button>
-      </div>
-    </section>
   </div>
+</section>
 
-  <script src="script.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
