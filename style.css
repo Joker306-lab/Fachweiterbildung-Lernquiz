@@ -1,0 +1,49 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, Arial;
+  background: #0f172a;
+  color: white;
+}
+.container {
+  max-width: 500px;
+  margin: auto;
+  padding: 20px;
+}
+#hud {
+  display: flex;
+  justify-content: space-between;
+  margin: 15px 0;
+}
+#timer {
+  background: #ef4444;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-weight: bold;
+}
+#card {
+  background: white;
+  color: black;
+  border-radius: 20px;
+  padding: 20px;
+}
+#answers button {
+  width: 100%;
+  padding: 16px;
+  margin: 10px 0;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  background: #1e293b;
+  color: white;
+}
+.correct { background: #22c55e !important; }
+.wrong { background: #ef4444 !important; }
+#joker {
+  margin-top: 15px;
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  border: none;
+  background: #f59e0b;
+  color: white;
+}
